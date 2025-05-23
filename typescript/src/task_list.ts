@@ -1,23 +1,20 @@
-/// <reference path="../typings/node/node.d.ts" />
+import * as readline from 'readline';
+import * as util from 'util';
 
-import readline = require('readline');
-import util = require('util');
-
-import task = require('./task');
+import * as task from './task';
 
 function splitFirstSpace(s: string) {
     var pos = s.indexOf(' ');
-    if(pos === -1) {
+    if (pos === -1) {
         return [s];
     }
-    return [s.substr(0, pos), s.substr(pos+1)]
+    return [s.substring(0, pos), s.substring(pos + 1)]
 }
 
-export class TaskList
-{
+export class TaskList {
     static QUIT = 'quit';
     private readline;
-    private tasks: {[index: string]: task.Task[]} = {};
+    private tasks: { [index: string]: task.Task[] } = {};
     private lastId = 0;
 
     constructor(reader: NodeJS.ReadableStream, writer: NodeJS.WritableStream) {
@@ -30,7 +27,7 @@ export class TaskList
 
         this.readline.setPrompt("> ");
         this.readline.on('line', (cmd) => {
-            if(cmd == TaskList.QUIT) {
+            if (cmd == TaskList.QUIT) {
                 this.readline.close();
                 return;
             }
@@ -43,7 +40,9 @@ export class TaskList
     }
 
     println(ln: string) {
+        // @ts-ignore
         this.readline.output.write(ln);
+        // @ts-ignore
         this.readline.output.write('\n');
     }
 
@@ -52,8 +51,8 @@ export class TaskList
     }
 
     forEachProject(func: (key: string, value: task.Task[]) => any) {
-        for(var key in this.tasks) {
-            if(this.tasks.hasOwnProperty(key))
+        for (var key in this.tasks) {
+            if (this.tasks.hasOwnProperty(key))
                 func(key, this.tasks[key])
         }
     }
@@ -136,7 +135,7 @@ export class TaskList
                 }
             });
         });
-        if(!found)
+        if (!found)
             this.println(util.format("Could not find a task with an ID of %d.", id));
     }
 
@@ -157,8 +156,4 @@ export class TaskList
     private nextId(): number {
         return ++this.lastId;
     }
-}
-
-if(require.main == module) {
-    new TaskList(process.stdin, process.stdout).run()
 }
