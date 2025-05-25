@@ -20,4 +20,8 @@ export class Task {
   set done(val: boolean) {
     this._done = val;
   }
+
+  toString(): string {
+    return `[${this._done ? 'x' : ' '}] ${this._id}: ${this._description}`;
+  }
 }
