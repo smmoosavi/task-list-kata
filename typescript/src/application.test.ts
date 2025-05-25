@@ -15,7 +15,7 @@ class TestContext {
       await new Promise<void>((resolve) =>
         this.output.once('readable', () => {
           if (expectation()) resolve();
-        })
+        }),
       );
     }
 
@@ -34,7 +34,6 @@ class TestContext {
 
   sendCommand(command: string) {
     this.expectations.push(() => {
-
       const prompt = this.output.read(2)?.toString();
       expect(prompt).toBe('> ');
       this.input.write(`${command}\n`);
@@ -49,46 +48,41 @@ describe('TaskList Application', () => {
 
     ctx.sendCommand('show');
 
-    ctx.sendCommand("add project secrets");
-    ctx.sendCommand("add task secrets Eat more donuts.");
-    ctx.sendCommand("add task secrets Destroy all humans.");
+    ctx.sendCommand('add project secrets');
+    ctx.sendCommand('add task secrets Eat more donuts.');
+    ctx.sendCommand('add task secrets Destroy all humans.');
 
-    ctx.sendCommand("show");
+    ctx.sendCommand('show');
+    ctx.expectOutput(['secrets', '    [ ] 1: Eat more donuts.', '    [ ] 2: Destroy all humans.', '']);
+
+    ctx.sendCommand('add project training');
+    ctx.sendCommand('add task training Four Elements of Simple Design');
+    ctx.sendCommand('add task training SOLID');
+    ctx.sendCommand('add task training Coupling and Cohesion');
+    ctx.sendCommand('add task training Primitive Obsession');
+    ctx.sendCommand('add task training Outside-In TDD');
+    ctx.sendCommand('add task training Interaction-Driven Design');
+
+    ctx.sendCommand('check 1');
+    ctx.sendCommand('check 3');
+    ctx.sendCommand('check 5');
+    ctx.sendCommand('check 6');
+
+    ctx.sendCommand('show');
     ctx.expectOutput([
-      "secrets",
-      "    [ ] 1: Eat more donuts.",
-      "    [ ] 2: Destroy all humans.",
-      "",
+      'secrets',
+      '    [x] 1: Eat more donuts.',
+      '    [ ] 2: Destroy all humans.',
+      '',
+      'training',
+      '    [x] 3: Four Elements of Simple Design',
+      '    [ ] 4: SOLID',
+      '    [x] 5: Coupling and Cohesion',
+      '    [x] 6: Primitive Obsession',
+      '    [ ] 7: Outside-In TDD',
+      '    [ ] 8: Interaction-Driven Design',
+      '',
     ]);
-
-    ctx.sendCommand("add project training");
-    ctx.sendCommand("add task training Four Elements of Simple Design");
-    ctx.sendCommand("add task training SOLID");
-    ctx.sendCommand("add task training Coupling and Cohesion");
-    ctx.sendCommand("add task training Primitive Obsession");
-    ctx.sendCommand("add task training Outside-In TDD");
-    ctx.sendCommand("add task training Interaction-Driven Design");
-
-    ctx.sendCommand("check 1");
-    ctx.sendCommand("check 3");
-    ctx.sendCommand("check 5");
-    ctx.sendCommand("check 6");
-
-    ctx.sendCommand("show");
-    ctx.expectOutput(
-      ["secrets",
-        "    [x] 1: Eat more donuts.",
-        "    [ ] 2: Destroy all humans.",
-        "",
-        "training",
-        "    [x] 3: Four Elements of Simple Design",
-        "    [ ] 4: SOLID",
-        "    [x] 5: Coupling and Cohesion",
-        "    [x] 6: Primitive Obsession",
-        "    [ ] 7: Outside-In TDD",
-        "    [ ] 8: Interaction-Driven Design",
-        ""
-      ]);
     ctx.sendCommand('quit');
 
     await ctx.run();
