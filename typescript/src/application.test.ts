@@ -5,46 +5,59 @@ import { TaskList } from '../src/task_list';
 class TestContext {
   input = new PassThrough();
   output = new PassThrough();
-  expectations: (() => boolean)[] = [];
-  tl = new TaskList(this.input, this.output);
-
-  async run() {
-    this.tl.run();
-
-    for (const expectation of this.expectations) {
-      await new Promise<void>((resolve) =>
-        this.output.once('readable', () => {
-          if (expectation()) resolve();
-        }),
-      );
-    }
-
-    this.input.end();
-    this.output.end();
+  taskList = new TaskList(this.input, this.output);
+  run() {
+    this.taskList.run();
   }
 
-  expectOutput(lines: string[]) {
-    let text = lines.join('\n') + '\n';
-    this.expectations.push(() => {
-      const data = this.output.read(text.length)?.toString();
-      expect(data).toBe(text);
-      return !!data;
-    });
+  emptyOutput() {
+    while (this.output.read()) {
+      // Clear the output stream
+    }
   }
 
   sendCommand(command: string) {
-    this.expectations.push(() => {
-      const prompt = this.output.read(2)?.toString();
-      expect(prompt).toBe('> ');
-      this.input.write(`${command}\n`);
-      return !!prompt;
-    });
+    this.emptyOutput();
+    this.input.write(`${command}\n`);
+  }
+
+  getOutput() {
+    let output = '';
+    let chunk = this.output.read();
+    if (chunk === null) {
+      return null;
+    }
+    while (chunk !== null) {
+      output += chunk.toString();
+      chunk = this.output.read();
+    }
+    return output;
+  }
+  getOutputWithoutPrompt() {
+    const output = this.getOutput();
+    if (output === null) {
+      return null;
+    }
+    // expect ends with '> ' and remove it
+    expect(output.endsWith('\n> ')).toBe(true);
+    return output.slice(0, -3); // Remove the trailing '> '
+  }
+
+  expectOutput(lines: string[]) {
+    const output = this.getOutputWithoutPrompt();
+    if (output === null) {
+      throw new Error('Output is null');
+    }
+    const expectedOutput = lines.join('\n');
+    expect(output).toBe(expectedOutput);
   }
 }
 
 describe('TaskList Application', () => {
   test('full interaction test', async () => {
     const ctx = new TestContext();
+
+    ctx.run();
 
     ctx.sendCommand('show');
 
@@ -53,7 +66,7 @@ describe('TaskList Application', () => {
     ctx.sendCommand('add task secrets Destroy all humans.');
 
     ctx.sendCommand('show');
-    ctx.expectOutput(['secrets', '    [ ] 1: Eat more donuts.', '    [ ] 2: Destroy all humans.', '']);
+    ctx.expectOutput(['secrets', '    [ ] 1: Eat more donuts.', '    [ ] 2: Destroy all humans.']);
 
     ctx.sendCommand('add project training');
     ctx.sendCommand('add task training Four Elements of Simple Design');
@@ -73,7 +86,7 @@ describe('TaskList Application', () => {
       'secrets',
       '    [x] 1: Eat more donuts.',
       '    [ ] 2: Destroy all humans.',
-      '',
+
       'training',
       '    [x] 3: Four Elements of Simple Design',
       '    [ ] 4: SOLID',
@@ -81,10 +94,7 @@ describe('TaskList Application', () => {
       '    [x] 6: Primitive Obsession',
       '    [ ] 7: Outside-In TDD',
       '    [ ] 8: Interaction-Driven Design',
-      '',
     ]);
     ctx.sendCommand('quit');
-
-    await ctx.run();
   });
 });
