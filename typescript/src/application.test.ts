@@ -97,4 +97,90 @@ describe('TaskList Application', () => {
     ]);
     ctx.sendCommand('quit');
   });
+  test('help command', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('help');
+    ctx.expectOutput([
+      'Commands:',
+      '  show',
+      '  add project <project name>',
+      '  add task <project name> <task description>',
+      '  check <task ID>',
+      '  uncheck <task ID>',
+      '',
+    ]);
+
+    ctx.sendCommand('quit');
+  });
+  test('invalid command', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('invalid command');
+    ctx.expectOutput([`I don't know what the command "invalid" is.`]);
+
+    ctx.sendCommand('quit');
+  });
+  test('empty command', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('');
+    ctx.expectOutput([`I don't know what the command "" is.`]);
+
+    ctx.sendCommand('quit');
+  });
+  test('project with no task', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('add project training');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['training']);
+    ctx.sendCommand('add task training Four Elements of Simple Design');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['training', '    [ ] 1: Four Elements of Simple Design']);
+
+    ctx.sendCommand('quit');
+  });
+
+  test('check/uncheck', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('add project training');
+    ctx.sendCommand('add task training Four Elements of Simple Design');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['training', '    [ ] 1: Four Elements of Simple Design']);
+    ctx.sendCommand('check 1');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['training', '    [x] 1: Four Elements of Simple Design']);
+    ctx.sendCommand('uncheck 1');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['training', '    [ ] 1: Four Elements of Simple Design']);
+
+    ctx.sendCommand('quit');
+  });
+
+  test('check task with invalid ID', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('add project training');
+    ctx.sendCommand('add task training Four Elements of Simple Design');
+    ctx.sendCommand('check 2');
+    ctx.expectOutput([`Could not find a task with an ID of 2.`]);
+
+    ctx.sendCommand('quit');
+  });
+
+  test('not existing project name', () => {
+    const ctx = new TestContext();
+    ctx.run();
+    ctx.sendCommand('add task training Four Elements of Simple Design');
+    ctx.expectOutput([`Could not find a project with the name "training".`]);
+    ctx.sendCommand('quit');
+  });
 });
