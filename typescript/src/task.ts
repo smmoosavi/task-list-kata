@@ -9,15 +9,11 @@ export class Task {
     return this._id;
   }
 
-  get description() {
-    return this._description;
-  }
-
-  get done() {
-    return this._done;
-  }
-
   set done(val: boolean) {
     this._done = val;
+  }
+
+  toString(): string {
+    return `${this._done ? '[x]' : '[ ]'} ${this._id}: ${this._description}`;
   }
 }
