@@ -39,8 +39,13 @@ class TestContext {
       return null;
     }
     // expect ends with '> ' and remove it
-    expect(output.endsWith('\n> ')).toBe(true);
-    return output.slice(0, -3); // Remove the trailing '> '
+    if (output.endsWith('\n> ')) {
+      return output.slice(0, -3);
+    }
+    if (output.endsWith('> ')) {
+      return output.slice(0, -2);
+    }
+    throw new Error('expect output ends with `> `');
   }
 
   expectOutput(lines: string[]) {
@@ -97,5 +102,77 @@ describe('TaskList Application', () => {
       '',
     ]);
     ctx.sendCommand('quit');
+  });
+
+  test('help command', async () => {
+    const ctx = new TestContext();
+
+    ctx.run();
+    ctx.sendCommand('help');
+    ctx.expectOutput([
+      'Commands:',
+      '  show',
+      '  add project <project name>',
+      '  add task <project name> <task description>',
+      '  check <task ID>',
+      '  uncheck <task ID>',
+      '',
+    ]);
+  });
+
+  test('invalid command', async () => {
+    const ctx = new TestContext();
+
+    ctx.run();
+    ctx.sendCommand('invalid command');
+    ctx.expectOutput([`I don't know what the command "invalid" is.`]);
+  });
+
+  test('no project', async () => {
+    const ctx = new TestContext();
+
+    ctx.run();
+    ctx.sendCommand('show');
+    ctx.expectOutput([]);
+  });
+
+  test('empty project', async () => {
+    const ctx = new TestContext();
+
+    ctx.run();
+    ctx.sendCommand('add project foo');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['foo', '']);
+  });
+
+  test('check/uncheck', async () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('add project foo');
+    ctx.sendCommand('add task foo Task 1');
+    ctx.sendCommand('add task foo Task 2');
+    ctx.sendCommand('check 1');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['foo', '    [x] 1: Task 1', '    [ ] 2: Task 2', '']);
+    ctx.sendCommand('uncheck 1');
+    ctx.sendCommand('show');
+    ctx.expectOutput(['foo', '    [ ] 1: Task 1', '    [ ] 2: Task 2', '']);
+  });
+
+  test('not existing project', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('add task foo Task 1');
+    ctx.expectOutput([`Could not find a project with the name "foo".`]);
+  });
+
+  test('check not existing task', () => {
+    const ctx = new TestContext();
+    ctx.run();
+
+    ctx.sendCommand('check 1');
+    ctx.expectOutput(['Could not find a task with an ID of 1.']);
   });
 });
